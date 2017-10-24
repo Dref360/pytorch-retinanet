@@ -21,8 +21,11 @@ from torch.autograd import Variable
 
 parser = argparse.ArgumentParser(description='PyTorch RetinaNet Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('path', type=str, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
 args = parser.parse_args()
+
+pjoin = os.path.join
 
 assert torch.cuda.is_available(), 'Error: CUDA not found!'
 best_loss = float('inf')  # best test loss
@@ -35,12 +38,12 @@ transform = transforms.Compose([
     transforms.Normalize((0.485,0.456,0.406), (0.229,0.224,0.225))
 ])
 
-trainset = ListDataset(root='/search/odin/liukuang/data/voc_all_images',
-                       list_file='./voc_data/test.txt', train=True, transform=transform, input_size=600, max_size=1000)
+trainset = ListDataset(root=pjoin(args.path,'train'),
+                       list_file=pjoin(args.path,'gt_train.csv'), train=True, transform=transform, input_size=600, max_size=1000)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=16, shuffle=True, num_workers=8, collate_fn=trainset.collate_fn)
 
-testset = ListDataset(root='/search/odin/liukuang/data/voc_all_images',
-                      list_file='./voc_data/test.txt', train=False, transform=transform, input_size=600, max_size=1000)
+testset = ListDataset(root=pjoin(args.path,'test'),
+                      list_file=pjoin(args.path,'gt_test.csv'), train=False, transform=transform, input_size=600, max_size=1000)
 testloader = torch.utils.data.DataLoader(testset, batch_size=16, shuffle=False, num_workers=8, collate_fn=testset.collate_fn)
 
 # Model

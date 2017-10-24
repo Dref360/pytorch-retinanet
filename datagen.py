@@ -7,14 +7,14 @@ The list file is like:
 from __future__ import print_function
 
 import os
-import sys
 import random
+from collections import defaultdict
 
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
-
 from PIL import Image
+
 from encoder import DataEncoder
 
 
@@ -29,6 +29,8 @@ class ListDataset(data.Dataset):
           input_size: (int) image shorter side size.
           max_size: (int) maximum image longer side size.
         '''
+        self.classes = ["articulated_truck", "bicycle", "bus", "car", "motorcycle", 'motorized_vehicle', "non-motorized_vehicle",
+                        "pedestrian", "pickup_truck", "single_unit_truck", "work_van"]
         self.root = root
         self.train = train
         self.transform = transform
@@ -44,23 +46,19 @@ class ListDataset(data.Dataset):
         with open(list_file) as f:
             lines = f.readlines()
             self.num_samples = len(lines)
-
+        datas = defaultdict(lambda : {'box':[],'label':[]})
         for line in lines:
-            splited = line.strip().split()
-            self.fnames.append(splited[0])
-            num_boxes = (len(splited) - 3) // 5
-            box = []
-            label = []
-            for i in range(num_boxes):
-                xmin = splited[3+5*i]
-                ymin = splited[4+5*i]
-                xmax = splited[5+5*i]
-                ymax = splited[6+5*i]
-                c = splited[7+5*i]
-                box.append([float(xmin),float(ymin),float(xmax),float(ymax)])
-                label.append(int(c))
-            self.boxes.append(torch.Tensor(box))
-            self.labels.append(torch.LongTensor(label))
+            splited = line.strip().split(',')
+            fname,c,xmin,ymin,xmax,ymax = splited
+            lab = self.classes.index(c)
+            assert lab != -1, c
+            datas[fname]['box'].append([float(xmin), float(ymin), float(xmax), float(ymax)])
+            datas[fname]['label'].append(lab)
+
+        for file,vals in datas.items():
+            self.fnames.append(file+'.jpg')
+            self.boxes.append(torch.Tensor(vals['box']))
+            self.labels.append(torch.LongTensor(vals['label']))
 
     def __getitem__(self, idx):
         '''Load image.
@@ -112,8 +110,8 @@ class ListDataset(data.Dataset):
         w = h = self.input_size
         ws = 1.0 * w / img.width
         hs = 1.0 * h / img.height
-        scale = torch.Tensor([ws,hs,ws,hs])
-        return img.resize((w,h)), scale*boxes
+        scale = torch.Tensor([ws, hs, ws, hs])
+        return img.resize((w, h)), scale * boxes
 
     def random_flip(self, img, boxes):
         '''Randomly flip the image and adjust the boxes.
@@ -132,10 +130,10 @@ class ListDataset(data.Dataset):
         if random.random() < 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
             w = img.width
-            xmin = w - boxes[:,2]
-            xmax = w - boxes[:,0]
-            boxes[:,0] = xmin
-            boxes[:,2] = xmax
+            xmin = w - boxes[:, 2]
+            xmax = w - boxes[:, 0]
+            boxes[:, 0] = xmin
+            boxes[:, 2] = xmax
         return img, boxes
 
     def scale_jitter(self, img, boxes):
@@ -150,13 +148,13 @@ class ListDataset(data.Dataset):
           boxes: (tensor) scaled object boxes, sized [#obj, 4].
         '''
         imw, imh = img.size
-        sw = random.uniform(3/4., 4/3.)
-        sh = random.uniform(3/4., 4/3.)
-        w = int(imw*sw)
-        h = int(imh*sh)
-        img = img.resize((w,h))
-        boxes[:,::2] *= sw
-        boxes[:,1::2] *= sh
+        sw = random.uniform(3 / 4., 4 / 3.)
+        sh = random.uniform(3 / 4., 4 / 3.)
+        w = int(imw * sw)
+        h = int(imh * sh)
+        img = img.resize((w, h))
+        boxes[:, ::2] *= sw
+        boxes[:, 1::2] *= sh
         return img, boxes
 
     def collate_fn(self, batch):
@@ -187,16 +185,16 @@ class ListDataset(data.Dataset):
         for i in range(num_imgs):
             im = imgs[i]
             imh, imw = im.size(1), im.size(2)
-            inputs[i,:,:imh,:imw] = im
+            inputs[i, :, :imh, :imw] = im
 
             # Encode data.
-            loc_target, cls_target = self.data_encoder.encode(boxes[i], labels[i], input_size=(max_w,max_h), train=self.train)
+            loc_target, cls_target = self.data_encoder.encode(boxes[i], labels[i], input_size=(max_w, max_h), train=self.train)
             loc_targets.append(loc_target)
             cls_targets.append(cls_target)
         return inputs, torch.stack(loc_targets), torch.stack(cls_targets)
 
     def __len__(self):
-        return self.num_samples
+        return len(self.fnames)
 
 
 def test():
@@ -204,10 +202,10 @@ def test():
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.485,0.456,0.406), (0.229,0.224,0.225))
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
-    dataset = ListDataset(root='/mnt/hgfs/D/download/PASCAL_VOC/voc_all_images',
-                          list_file='./voc_data/test.txt', train=False, transform=transform, input_size=600, max_size=1000)
+    dataset = ListDataset(root='/media/braf3002/hdd2/Downloads/MIO-TCD-Localization/train',
+                          list_file='/media/braf3002/hdd2/Downloads/MIO-TCD-Localization/gt_train.csv', train=False, transform=transform, input_size=600, max_size=1000)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=1, collate_fn=dataset.collate_fn)
 
     for images, loc_targets, cls_targets in dataloader:
@@ -215,7 +213,6 @@ def test():
         print(loc_targets.size())
         print(cls_targets.size())
         grid = torchvision.utils.make_grid(images, 1)
-        torchvision.utils.save_image(grid,'a.jpg')
+        torchvision.utils.save_image(grid, 'a.jpg')
         break
 
-# test()
