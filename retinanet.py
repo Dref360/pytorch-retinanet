@@ -3,11 +3,12 @@ import torch.nn as nn
 
 from fpn import FPN50
 from torch.autograd import Variable
+from datagen import ListDataset
 
 
 class RetinaNet(nn.Module):
     num_anchors = 9
-    num_classes = 20
+    num_classes = ListDataset.n_class
 
     def __init__(self):
         super(RetinaNet, self).__init__()

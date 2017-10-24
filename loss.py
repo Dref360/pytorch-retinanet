@@ -6,10 +6,11 @@ import torch.nn.functional as F
 
 from utils import one_hot_embedding
 from torch.autograd import Variable
+from datagen import ListDataset
 
 
 class FocalLoss(nn.Module):
-    num_classes = 20
+    num_classes = ListDataset.n_class
 
     def __init__(self):
         super(FocalLoss, self).__init__()

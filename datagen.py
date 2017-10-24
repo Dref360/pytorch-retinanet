@@ -19,6 +19,10 @@ from encoder import DataEncoder
 
 
 class ListDataset(data.Dataset):
+    classes = ["articulated_truck", "bicycle", "bus", "car", "motorcycle", 'motorized_vehicle', "non-motorized_vehicle",
+               "pedestrian", "pickup_truck", "single_unit_truck", "work_van"]
+    n_class = len(classes)
+
     def __init__(self, root, list_file, train, transform, input_size, max_size):
         '''
         Args:
@@ -29,8 +33,6 @@ class ListDataset(data.Dataset):
           input_size: (int) image shorter side size.
           max_size: (int) maximum image longer side size.
         '''
-        self.classes = ["articulated_truck", "bicycle", "bus", "car", "motorcycle", 'motorized_vehicle', "non-motorized_vehicle",
-                        "pedestrian", "pickup_truck", "single_unit_truck", "work_van"]
         self.root = root
         self.train = train
         self.transform = transform

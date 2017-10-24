@@ -62,6 +62,8 @@ net.cuda()
 criterion = FocalLoss()
 optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
 
+print('Number of classes',criterion.num_classes)
+
 # Training
 def train(epoch):
     print('\nEpoch: %d' % epoch)
