@@ -8,8 +8,8 @@ from utils import meshgrid, box_iou, box_nms, change_box_order
 class DataEncoder:
     def __init__(self):
         self.anchor_areas = [32*32., 64*64., 128*128., 256*256., 512*512.]  # p3 -> p7
-        self.aspect_ratios = [1/2., 1/1., 2/1.]
-        self.scale_ratios = [1., pow(2,1/3.), pow(2,2/3.)]
+        self.aspect_ratios = [3/4.,1.,4/.3]
+        self.scale_ratios = [0.01137631,  0.09697727,  0.34565646]
         self.anchor_wh = self._get_anchor_wh()
 
     def _get_anchor_wh(self):
@@ -80,6 +80,7 @@ class DataEncoder:
         boxes = change_box_order(boxes, 'xyxy2xywh')
 
         ious = box_iou(anchor_boxes, boxes, order='xywh')
+        print(ious.max())
         max_ious, max_ids = ious.max(1)
         boxes = boxes[max_ids]
 
@@ -88,10 +89,11 @@ class DataEncoder:
         loc_targets = torch.cat([loc_xy,loc_wh], 1)
         cls_targets = 1 + labels[max_ids]
 
-        cls_targets[max_ious<0.5] = 0
+        cls_targets[max_ious<0.3] = 0
         if train:
-            ignore = (max_ious>0.4) & (max_ious<0.5)  # ignore ious between [0.4,0.5]
-            cls_targets[ignore] = -1  # for now just mark ignored to -1
+            pass
+            #ignore = (max_ious>0.4) & (max_ious<0.5)  # ignore ious between [0.4,0.5]
+            #cls_targets[ignore] = -1  # for now just mark ignored to -1
         return loc_targets, cls_targets
 
     def decode(self, loc_preds, cls_preds, input_size):

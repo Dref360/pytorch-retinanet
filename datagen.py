@@ -112,6 +112,8 @@ class ListDataset(data.Dataset):
         w = h = self.input_size
         ws = 1.0 * w / img.width
         hs = 1.0 * h / img.height
+
+
         scale = torch.Tensor([ws, hs, ws, hs])
         return img.resize((w, h)), scale * boxes
 
@@ -208,13 +210,20 @@ def test():
     ])
     dataset = ListDataset(root='/media/braf3002/hdd2/Downloads/MIO-TCD-Localization/train',
                           list_file='/media/braf3002/hdd2/Downloads/MIO-TCD-Localization/gt_train.csv', train=False, transform=transform, input_size=600, max_size=1000)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=1, collate_fn=dataset.collate_fn)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, collate_fn=dataset.collate_fn)
 
-    for images, loc_targets, cls_targets in dataloader:
-        print(images.size())
-        print(loc_targets.size())
-        print(cls_targets.size())
-        grid = torchvision.utils.make_grid(images, 1)
-        torchvision.utils.save_image(grid, 'a.jpg')
-        break
+    for idx,(images, loc_targets, cls_targets) in enumerate(dataloader):
+        #print(images.size())
+        #print(loc_targets.size())
+        #print(cls_targets.size())
+        pos = cls_targets > 0  # [N,#anchors]
+        num_pos = pos.long().sum()
+        if  num_pos == 0:
+            print('BAD', idx)
+            dataset.collate_fn([dataset[idx]])
+        #grid = torchvision.utils.make_grid(images, 1)
+        #torchvision.utils.save_image(grid, 'a.jpg')
+        #break
+
+#test()
 

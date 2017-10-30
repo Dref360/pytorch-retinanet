@@ -37,14 +37,14 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.485,0.456,0.406), (0.229,0.224,0.225))
 ])
-
+batchsize = 4
 trainset = ListDataset(root=pjoin(args.path,'train'),
                        list_file=pjoin(args.path,'gt_train.csv'), train=True, transform=transform, input_size=600, max_size=1000)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=16, shuffle=True, num_workers=8, collate_fn=trainset.collate_fn)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=batchsize, shuffle=True, num_workers=4, collate_fn=trainset.collate_fn)
 
 testset = ListDataset(root=pjoin(args.path,'test'),
                       list_file=pjoin(args.path,'gt_test.csv'), train=False, transform=transform, input_size=600, max_size=1000)
-testloader = torch.utils.data.DataLoader(testset, batch_size=16, shuffle=False, num_workers=8, collate_fn=testset.collate_fn)
+testloader = torch.utils.data.DataLoader(testset, batch_size=batchsize, shuffle=False, num_workers=4, collate_fn=testset.collate_fn)
 
 # Model
 net = RetinaNet()
@@ -60,7 +60,7 @@ net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
 net.cuda()
 
 criterion = FocalLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=1e-4)
 
 print('Number of classes',criterion.num_classes)
 
@@ -81,7 +81,7 @@ def train(epoch):
         optimizer.step()
 
         train_loss += loss.data[0]
-        print('train_loss: %.3f | avg_loss: %.3f' % (loss.data[0], train_loss/(batch_idx+1)))
+        print('batch : %i/%i train_loss: %.3f | avg_loss: %.3f' % (batch_idx,int(len(trainset)//batchsize), loss.data[0], train_loss/(batch_idx+1)))
 
 # Test
 def test(epoch):
