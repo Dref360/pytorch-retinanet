@@ -225,5 +225,7 @@ def test():
         #torchvision.utils.save_image(grid, 'a.jpg')
         #break
 
-#test()
+
+if __name__ == '__main__':
+    test()
 

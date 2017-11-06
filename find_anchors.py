@@ -10,7 +10,7 @@ pjoin = os.path.join
 with open('/media/braf3002/hdd2/Downloads/MIO-TCD-Localization/gt_train.csv', "r") as f:
     lines = [(s.split(',')[0], [float(s_) for s_ in s.split(',')[2:]]) for s in f.readlines()]
 
-areas = [(x2 - x1) * (y2 - y1) for _, (x1, y1, x2, y2) in lines]
+areas = [max(1,(x2 - x1)) * max(1,(y2 - y1)) for _, (x1, y1, x2, y2) in lines]
 if os.path.exists('shapes.pkl'):
     shapes = pickle.load(open('shapes.pkl','rb'))
 else:
@@ -25,9 +25,9 @@ aspect_ratio = [(max(1,x2 - x1)/w) / (max(1,y2 - y1)/h) for (_, (x1, y1, x2, y2)
 
 print("Scales")
 scales = [ar / (sh[0] * sh[1]) for ar, sh in zip(areas, shapes)]
-
+N_KERNEL = 5
 print("Kmeans")
-km = KMeans(3)
+km = KMeans(5)
 print("Scales", km.fit(np.array(scales).reshape([-1,1])).cluster_centers_.reshape([-1]))
-km = KMeans(3)
+km = KMeans(5)
 print("Aspect ratio", km.fit(np.array(aspect_ratio).reshape([-1,1])).cluster_centers_.reshape([-1]))

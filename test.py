@@ -36,5 +36,4 @@ for idx,(inputs, loc_targets, cls_targets) in enumerate(dataloader):
 
     for x0,y0,x1,y1 in boxes:
         cv2.rectangle(img,(int(x0),int(y0)),(int(x1),int(y1)),(255,0,0))
-    cv2.imshow('lol',img)
-    cv2.waitKey(1000)
+    cv2.imwrite('lol{}.png'.format(idx),img)
